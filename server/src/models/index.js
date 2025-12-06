@@ -1,89 +1,69 @@
-const models = {};
+import fs from 'fs';
+import path from 'path';
+import { Sequelize } from 'sequelize';
 
-//Mang Categories
-const categories = [
-    { id: 1, name: "Electronics" },
-    { id: 2, name: "Clothing" },
-    { id: 3, name: "Home & Kitchen" },
-    { id: 4, name: "Books" },
-    { id: 5, name: "Sports & Outdoors" }
-];
+// 1. Tự định nghĩa __dirname và __filename trong ESM
+import { fileURLToPath, pathToFileURL } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-//mang products
-const products = [
-    {
-        id: 1,
-        name: "Smartphone",
-        description: "Latest model smartphone with advanced features",
-        price: 699.99,
-        categoryId: 1
-    },
-    {
-        id: 2,
-        name: "Running Shoes",
-        description: "Comfortable and durable running shoes",
-        price: 89.99,
-        categoryId: 1
-    },
-    {
-        id: 3,
-        name: "Blender",
-        description: "High-speed blender for smoothies and soups",
-        price: 49.99,
-        categoryId: 3
-    },
-    {
-        id: 4,
-        name: "Novel Book",
-        description: "Bestselling novel by a renowned author",
-        price: 14.99,
-        categoryId: 2
-    },
-    {
-        id: 5,
-        name: "Yoga Mat",
-        description: "Non-slip yoga mat for all types of exercises",
-        price: 29.99,
-        categoryId: 2
-    },
-    {
-        id: 6,
-        name: "Wireless Headphones",
-        description: "Noise-cancelling wireless headphones with long battery life",
-        price: 199.99,
-        categoryId: 4
-    },
-    {
-        id: 7,
-        name: "Coffee Maker",
-        description: "Programmable coffee maker with built-in grinder",
-        price: 79.99,
-        categoryId: 5
-    },
-    {
-        id: 8,
-        name: "Fitness Tracker",
-        description: "Waterproof fitness tracker with heart rate monitor",
-        price: 59.99,
-        categoryId: 4
-    },
-    {
-        id: 9,
-        name: "Electric Kettle",
-        description: "Fast-boiling electric kettle with temperature control",
-        price: 39.99,
-        categoryId: 5
-    },
-    {
-        id: 10,
-        name: "Action Camera",
-        description: "4K action camera with wide-angle lens",
-        price: 149.99,
-        categoryId: 1
+const basename = path.basename(__filename);
+const env = process.env.NODE_ENV || 'development';
+
+import databaseConfig from '../config/config.cjs'; 
+const config = databaseConfig[env];
+
+const db = {};
+
+let sequelize;
+if (config.use_env_variable) {
+  sequelize = new Sequelize(process.env[config.use_env_variable], config);
+} else {
+  sequelize = new Sequelize(config.database, config.username, config.password, config);
+}
+
+const modelFiles = fs
+  .readdirSync(__dirname, { withFileTypes: true })
+  .filter(dirent => dirent.isFile())
+  .map(dirent => dirent.name)
+  .filter(file => {
+    return (
+      file.indexOf('.') !== 0 &&
+      file !== basename &&
+      file.slice(-3) === '.js' &&
+      file.indexOf('.test.js') === -1
+    );
+  });
+
+try {
+  await Promise.all(modelFiles.map(async (file) => {
+    const fileUrl = pathToFileURL(path.join(__dirname, file)).href;
+    const imported = await import(fileUrl);
+    const modelDefinition = imported.default ?? imported; // support default or named export
+    if (typeof modelDefinition !== 'function') {
+      throw new TypeError(`${file} does not export a function (sequelize, DataTypes) => Model`);
     }
-];
+    const model = modelDefinition(sequelize, Sequelize.DataTypes);
+    if (!model || !model.name) {
+      throw new Error(`Model initialization failed for file: ${file}`);
+    }
+    db[model.name] = model;
+  }));
 
-models.Category = categories;
-models.Product = products;
+  Object.keys(db).forEach(modelName => {
+    if (db[modelName].associate) {
+      db[modelName].associate(db);
+    }
+  });
 
-export default models;
+  // Optional: validate connection early
+  // await sequelize.authenticate();
+
+  db.sequelize = sequelize;
+  db.Sequelize = Sequelize;
+} catch (err) {
+  // make startup failures visible
+  console.error('Failed to initialize models:', err);
+  throw err;
+}
+export default db;

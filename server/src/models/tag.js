@@ -1,0 +1,21 @@
+import { Model } from 'sequelize';
+export default (sequelize, DataTypes) => {
+  class Tag extends Model {
+    /**
+     * Helper method for defining associations.
+     * This method is not a part of Sequelize lifecycle.
+     * The `models/index` file will call this method automatically.
+     */
+    static associate(models) {
+      // define association here
+      Tag.belongsToMany(models.Product, { through: 'ProductTag', foreignKey: 'tagId', otherKey: 'productId' })
+    }
+  }
+  Tag.init({
+    name: DataTypes.STRING
+  }, {
+    sequelize,
+    modelName: 'Tag',
+  });
+  return Tag;
+};
