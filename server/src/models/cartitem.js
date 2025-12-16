@@ -9,7 +9,7 @@ export default (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       CartItem.belongsTo(models.User, { foreignKey: "userId" });
-      CartItem.belongsTo(models.Product, { foreignKey: "productId" });
+      CartItem.belongsTo(models.ProductVariant, { foreignKey: "productVariantId", as: "variant" });
     }
   }
   CartItem.init(
@@ -22,11 +22,11 @@ export default (sequelize, DataTypes) => {
           key: "id",
         },
       },
-      productId: {
+      productVariantId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-          model: "Products",
+          model: "ProductVariants",
           key: "id",
         },
       },
@@ -37,18 +37,7 @@ export default (sequelize, DataTypes) => {
         validate: {
           min: 1,
         },
-      },
-      price: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        comment: "Giá tại thời điểm thêm vào giỏ",
-      },
-      total: {
-        type: DataTypes.VIRTUAL,
-        get() {
-          return parseFloat(this.quantity) * parseFloat(this.price);
-        },
-      },
+      }
     },
     {
       sequelize,
@@ -56,7 +45,7 @@ export default (sequelize, DataTypes) => {
       indexes: [
         {
           unique: true,
-          fields: ["userId", "productId"],
+          fields: ["userId", "productVariantId"],
         },
       ],
     }

@@ -17,6 +17,13 @@ export default (sequelize, DataTypes) => {
       fullName: DataTypes.STRING,
       phoneNumber: DataTypes.STRING,
       addressLine: DataTypes.TEXT,
+      countryCode: {
+        type: DataTypes.STRING,
+        defaultValue: 'VN'
+      },
+      state: DataTypes.STRING,
+      city: DataTypes.STRING,
+      postalCode: DataTypes.STRING,
       isDefault: DataTypes.BOOLEAN,
     },
     {

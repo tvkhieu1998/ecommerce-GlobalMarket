@@ -9,7 +9,7 @@ export default (sequelize, DataTypes) => {
         static associate(models) {
             // define association here
             OrderDetail.belongsTo(models.Order, { foreignKey: 'orderId' });
-            OrderDetail.belongsTo(models.Product, { foreignKey: 'productId' });
+            OrderDetail.belongsTo(models.ProductVariant, { foreignKey: 'productVariantId', as: 'variant' });
         }
     }
     OrderDetail.init({
